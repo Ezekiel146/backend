@@ -121,7 +121,7 @@ function streamProjectScores(call: grpc.ServerWritableStream<any, any>) {
       const details = getProjectDetails(update.project_id);
       call.write(details);
     } catch (err) {
-      console.error("[gRPC Stream] failed to send project details:", err);
+      logger.error("[gRPC Stream] failed to send project details:", logger.formatError(err));
     }
   };
 
@@ -167,7 +167,7 @@ function chatProjectScores(call: grpc.ServerDuplexStream<any, any>) {
       const details = getProjectDetails(project_id);
       call.write(details);
     } catch (err) {
-      console.error("[gRPC Chat] data processing error:", err);
+      logger.error("[gRPC Chat] data processing error:", logger.formatError(err));
     }
   });
 

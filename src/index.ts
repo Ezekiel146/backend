@@ -89,11 +89,11 @@ if (initialAdminUserId) {
 
 // Initialize APM in background — errors are logged but don't block startup
 initApm().catch((err: Error) => {
-  console.error("[startup] APM initialization failed:", err.message);
+  logger.error("[startup] APM initialization failed:", { error: err.message });
 });
 
 if (!process.env.ADMIN_API_KEY) {
-  console.warn(
+  logger.warn(
     "[startup] WARNING: ADMIN_API_KEY is not set. Admin endpoints will return 500 errors.",
   );
 }
