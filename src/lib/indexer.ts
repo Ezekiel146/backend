@@ -95,7 +95,7 @@ function findFirstMatchingValue(
   return undefined;
 }
 
-function extractSourceAccount(tx: any): string | null {
+function extractSourceAccount(tx: unknown): string | null {
   const candidate = findFirstMatchingValue(tx, ["source", "sourceAccount", "account", "from"]);
   if (typeof candidate === "string" && candidate.trim()) {
     return candidate.trim();
@@ -180,7 +180,7 @@ function parseVaultEvent(
   };
 }
 
-function extractVaultEvent(tx: any): Partial<VaultEvent> | null {
+function extractVaultEvent(tx: unknown): Partial<VaultEvent> | null {
   const sourceAccount = extractSourceAccount(tx);
   const candidates: unknown[] = [];
 
@@ -198,13 +198,19 @@ function extractVaultEvent(tx: any): Partial<VaultEvent> | null {
     }
   }
 
-  const meta = tx?.resultMetaXdr;
+  interface TxWithResultMetaXdr {
+    resultMetaXdr?: unknown;
+  }
+  const meta = (tx as TxWithResultMetaXdr)?.resultMetaXdr;
   if (meta && typeof meta === "object") {
-    const v1 = (meta as any).v1;
+    interface MetaWithV1 {
+      v1?: () => { events?: unknown[] };
+    }
+    const v1 = (meta as MetaWithV1).v1;
     if (typeof v1 === "function") {
       const result = v1.call(meta);
       if (result && typeof result === "object") {
-        const nested = (result as any).events;
+        const nested = result.events;
         if (Array.isArray(nested)) {
           for (const item of nested) {
             const parsed = parseVaultEvent(item, sourceAccount);
@@ -222,8 +228,11 @@ function extractVaultEvent(tx: any): Partial<VaultEvent> | null {
     }
   }
 
-  if (Array.isArray(tx?.diagnosticEvents)) {
-    for (const item of tx.diagnosticEvents) {
+  interface TxWithDiagnosticEvents {
+    diagnosticEvents?: unknown[];
+  }
+  if (Array.isArray((tx as TxWithDiagnosticEvents)?.diagnosticEvents)) {
+    for (const item of (tx as TxWithDiagnosticEvents).diagnosticEvents!) {
       const parsed = parseVaultEvent(item, sourceAccount);
       if (parsed) {
         return {
@@ -378,10 +387,20 @@ export class EventIndexer {
         // ledger sequence number (e.g. "12345678") is not a valid hash and will
         // never match a real transaction, so the old loop silently discovered
         // nothing. getEvents() is the correct RPC surface for this use-case.
-        const eventsResponse = await (client as any).getEvents({
+        interface GetEventsResponse {
+          events?: unknown[];
+        }
+        const eventsResponse = (await (
+          client as unknown as {
+            getEvents: (params: {
+              startLedger: number;
+              filters: Array<{ type: string }>;
+            }) => Promise<GetEventsResponse>;
+          }
+        ).getEvents({
           startLedger,
           filters: [{ type: "contract" }],
-        });
+        })) as GetEventsResponse;
 
         const rawEvents: unknown[] = Array.isArray(eventsResponse?.events)
           ? eventsResponse.events
