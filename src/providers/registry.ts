@@ -1,4 +1,11 @@
-import { SolarDataProvider, SatelliteDataProvider, SolarReading, SatelliteReading, ProviderHealth } from "./types";
+import {
+  SolarDataProvider,
+  SatelliteDataProvider,
+  SolarReading,
+  SatelliteReading,
+  ProviderHealth,
+  ProjectCredentials,
+} from "./types";
 import { SimulatorSolarProvider, SimulatorSatelliteProvider } from "./simulator";
 import { SolarEdgeProvider } from "./solaredge";
 import { logger } from "../lib/logger";
@@ -44,7 +51,10 @@ function markUnhealthy(name: string, error: string): void {
  * Tries providers in priority order (lower priority number = tried first).
  * Falls back to simulator if all real providers fail.
  */
-export async function fetchSolarData(projectId: number, credentials?: Record<string, any>): Promise<SolarReading> {
+export async function fetchSolarData(
+  projectId: number,
+  credentials?: ProjectCredentials,
+): Promise<SolarReading> {
   const enabled = solarProviders.filter((p) => p.enabled).sort((a, b) => a.priority - b.priority);
 
   for (const provider of enabled) {
@@ -52,7 +62,10 @@ export async function fetchSolarData(projectId: number, credentials?: Record<str
       logger.debug(`[solar-registry] Trying provider ${provider.name}`, { projectId });
       const reading = await provider.fetch(projectId, credentials);
       markHealthy(provider.name);
-      logger.info(`[solar-registry] Success with ${provider.name}`, { projectId, source: reading.provenance.source });
+      logger.info(`[solar-registry] Success with ${provider.name}`, {
+        projectId,
+        source: reading.provenance.source,
+      });
       return reading;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -70,21 +83,29 @@ export async function fetchSolarData(projectId: number, credentials?: Record<str
 export async function fetchSatelliteData(
   projectId: number,
   polygon?: [number, number][],
-  credentials?: Record<string, any>
+  credentials?: ProjectCredentials,
 ): Promise<SatelliteReading> {
-  const enabled = satelliteProviders.filter((p) => p.enabled).sort((a, b) => a.priority - b.priority);
+  const enabled = satelliteProviders
+    .filter((p) => p.enabled)
+    .sort((a, b) => a.priority - b.priority);
 
   for (const provider of enabled) {
     try {
       logger.debug(`[satellite-registry] Trying provider ${provider.name}`, { projectId });
       const reading = await provider.fetch(projectId, polygon, credentials);
       markHealthy(provider.name);
-      logger.info(`[satellite-registry] Success with ${provider.name}`, { projectId, source: reading.provenance.source });
+      logger.info(`[satellite-registry] Success with ${provider.name}`, {
+        projectId,
+        source: reading.provenance.source,
+      });
       return reading;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       markUnhealthy(provider.name, msg);
-      logger.warn(`[satellite-registry] Provider ${provider.name} failed`, { projectId, error: msg });
+      logger.warn(`[satellite-registry] Provider ${provider.name} failed`, {
+        projectId,
+        error: msg,
+      });
     }
   }
 
@@ -93,18 +114,24 @@ export async function fetchSatelliteData(
 
 export function getProviderHealth(): { solar: ProviderHealth[]; satellite: ProviderHealth[] } {
   return {
-    solar: solarProviders.map((p) => healthMap.get(p.name) ?? {
-      name: p.name,
-      healthy: true,
-      last_checked: 0,
-      failure_count: 0,
-    }),
-    satellite: satelliteProviders.map((p) => healthMap.get(p.name) ?? {
-      name: p.name,
-      healthy: true,
-      last_checked: 0,
-      failure_count: 0,
-    }),
+    solar: solarProviders.map(
+      (p) =>
+        healthMap.get(p.name) ?? {
+          name: p.name,
+          healthy: true,
+          last_checked: 0,
+          failure_count: 0,
+        },
+    ),
+    satellite: satelliteProviders.map(
+      (p) =>
+        healthMap.get(p.name) ?? {
+          name: p.name,
+          healthy: true,
+          last_checked: 0,
+          failure_count: 0,
+        },
+    ),
   };
 }
 

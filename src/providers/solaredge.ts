@@ -38,7 +38,8 @@ export class SolarEdgeProvider implements SolarDataProvider {
     // Extract metrics
     const power_output_kw = (powerData.power ?? 0) / 1000; // Convert W to kW
     const max_power_kw = (overviewData.peakPower ?? 0) / 1000;
-    const efficiency_pct = max_power_kw > 0 ? Math.min(100, (power_output_kw / max_power_kw) * 100) : 0;
+    const efficiency_pct =
+      max_power_kw > 0 ? Math.min(100, (power_output_kw / max_power_kw) * 100) : 0;
 
     return {
       power_output_kw: Math.round(power_output_kw * 100) / 100,
@@ -66,8 +67,13 @@ export class SolarEdgeProvider implements SolarDataProvider {
       throw new Error(`SolarEdge API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    logger.debug("[solaredge] Fetched current power", { siteId, power: data.siteCurrentPowerFlow?.PV?.currentPower });
+    const data = (await response.json()) as {
+      siteCurrentPowerFlow?: { PV?: { currentPower?: number }; unit?: string };
+    };
+    logger.debug("[solaredge] Fetched current power", {
+      siteId,
+      power: data.siteCurrentPowerFlow?.PV?.currentPower,
+    });
 
     return {
       power: data.siteCurrentPowerFlow?.PV?.currentPower ?? 0,
@@ -87,8 +93,13 @@ export class SolarEdgeProvider implements SolarDataProvider {
       throw new Error(`SolarEdge API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    logger.debug("[solaredge] Fetched site overview", { siteId, peakPower: data.overview?.peakPower });
+    const data = (await response.json()) as {
+      overview?: { peakPower?: number; installationDate?: string };
+    };
+    logger.debug("[solaredge] Fetched site overview", {
+      siteId,
+      peakPower: data.overview?.peakPower,
+    });
 
     return {
       peakPower: data.overview?.peakPower ?? 0,
