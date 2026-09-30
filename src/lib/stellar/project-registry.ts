@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+import { logger } from "../logger";
 
 /**
  * Minimum update interval enforced by the ProjectRegistry contract (in seconds).
@@ -19,7 +19,7 @@ export const UPDATE_SAFETY_MARGIN = 30; // 30 seconds margin
  * Contract error codes from ProjectRegistry
  */
 export enum ProjectRegistryError {
-  UpdateTooFrequent = 'UpdateTooFrequent',
+  UpdateTooFrequent = "UpdateTooFrequent",
 }
 
 /**
@@ -53,10 +53,12 @@ export class ProjectRegistryService {
   private contractId: string;
 
   constructor(contractId?: string) {
-    this.contractId = contractId || process.env.PROJECT_REGISTRY_CONTRACT_ID || '';
+    this.contractId = contractId || process.env.PROJECT_REGISTRY_CONTRACT_ID || "";
 
     if (!this.contractId) {
-      logger.warn('[project-registry] PROJECT_REGISTRY_CONTRACT_ID not configured - oracle updates disabled');
+      logger.warn(
+        "[project-registry] PROJECT_REGISTRY_CONTRACT_ID not configured - oracle updates disabled",
+      );
     }
   }
 
@@ -76,7 +78,9 @@ export class ProjectRegistryService {
       // const result = await contract.call('get_project', xdr.scvU32(projectId));
       // return parseProjectData(result);
 
-      throw new Error('Soroban contract invocation not implemented - requires @stellar/stellar-sdk Soroban support');
+      throw new Error(
+        "Soroban contract invocation not implemented - requires @stellar/stellar-sdk Soroban support",
+      );
     } catch (error: any) {
       logger.error(`[project-registry] Failed to fetch project ${projectId}:`, error);
       throw error;
@@ -89,7 +93,11 @@ export class ProjectRegistryService {
    *
    * Issue #644: This prevents submitting updates when fewer than 3600s + margin have elapsed.
    */
-  canUpdateProject(lastUpdateTimestamp: number): { canUpdate: boolean; reason?: string; waitSeconds?: number } {
+  canUpdateProject(lastUpdateTimestamp: number): {
+    canUpdate: boolean;
+    reason?: string;
+    waitSeconds?: number;
+  } {
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
     const timeSinceLastUpdate = now - lastUpdateTimestamp;
     const requiredInterval = MIN_UPDATE_INTERVAL + UPDATE_SAFETY_MARGIN;
@@ -98,8 +106,8 @@ export class ProjectRegistryService {
       const waitSeconds = requiredInterval - timeSinceLastUpdate;
       logger.info(
         `[project-registry] Update too frequent. Last update: ${lastUpdateTimestamp}, ` +
-        `time since: ${timeSinceLastUpdate}s, required: ${requiredInterval}s, ` +
-        `wait: ${waitSeconds}s`
+          `time since: ${timeSinceLastUpdate}s, required: ${requiredInterval}s, ` +
+          `wait: ${waitSeconds}s`,
       );
       return {
         canUpdate: false,
@@ -110,7 +118,7 @@ export class ProjectRegistryService {
 
     logger.debug(
       `[project-registry] Update allowed. Time since last update: ${timeSinceLastUpdate}s ` +
-      `(required: ${requiredInterval}s = ${MIN_UPDATE_INTERVAL}s + ${UPDATE_SAFETY_MARGIN}s margin)`
+        `(required: ${requiredInterval}s = ${MIN_UPDATE_INTERVAL}s + ${UPDATE_SAFETY_MARGIN}s margin)`,
     );
     return { canUpdate: true };
   }
@@ -125,10 +133,12 @@ export class ProjectRegistryService {
   async updateImpactScore(
     projectId: string,
     impactScore: number,
-    skipTimestampCheck: boolean = false
+    skipTimestampCheck: boolean = false,
   ): Promise<UpdateResult> {
     try {
-      logger.info(`[project-registry] Attempting to update impact score for project ${projectId} to ${impactScore}`);
+      logger.info(
+        `[project-registry] Attempting to update impact score for project ${projectId} to ${impactScore}`,
+      );
 
       // Step 1: Read last_update_timestamp from get_project (#644 fix)
       if (!skipTimestampCheck) {
@@ -136,7 +146,9 @@ export class ProjectRegistryService {
         try {
           projectData = await this.getProject(projectId);
         } catch (error: any) {
-          logger.warn(`[project-registry] Could not fetch project data for timestamp check: ${error.message}`);
+          logger.warn(
+            `[project-registry] Could not fetch project data for timestamp check: ${error.message}`,
+          );
           return {
             success: false,
             skipped: true,
@@ -147,7 +159,9 @@ export class ProjectRegistryService {
         // Step 2: Check if enough time has passed (#644 fix)
         const updateCheck = this.canUpdateProject(projectData.last_update_timestamp);
         if (!updateCheck.canUpdate) {
-          logger.info(`[project-registry] Skipping update for project ${projectId}: ${updateCheck.reason}`);
+          logger.info(
+            `[project-registry] Skipping update for project ${projectId}: ${updateCheck.reason}`,
+          );
           return {
             success: true, // This is a successful skip, not a failure
             skipped: true,
@@ -162,23 +176,27 @@ export class ProjectRegistryService {
 
       // TODO: Implement actual Soroban transaction submission
 
-      throw new Error('Soroban contract transaction not implemented - requires @stellar/stellar-sdk Soroban support');
-
+      throw new Error(
+        "Soroban contract transaction not implemented - requires @stellar/stellar-sdk Soroban support",
+      );
     } catch (error: any) {
       // Step 4: Map UpdateTooFrequent contract error to non-alerting skip (#644 fix)
       if (this.isUpdateTooFrequentError(error)) {
         logger.info(
           `[project-registry] Received UpdateTooFrequent error for project ${projectId} - ` +
-          `treating as skipped (non-alerting). This should be rare with timestamp checking.`
+            `treating as skipped (non-alerting). This should be rare with timestamp checking.`,
         );
         return {
           success: true,
           skipped: true,
-          reason: 'Contract returned UpdateTooFrequent error',
+          reason: "Contract returned UpdateTooFrequent error",
         };
       }
 
-      logger.error(`[project-registry] Failed to update impact score for project ${projectId}:`, error);
+      logger.error(
+        `[project-registry] Failed to update impact score for project ${projectId}:`,
+        error,
+      );
       return {
         success: false,
         skipped: false,
@@ -191,10 +209,10 @@ export class ProjectRegistryService {
    * Check if an error is the UpdateTooFrequent contract error.
    */
   private isUpdateTooFrequentError(error: any): boolean {
-    if (error.message && error.message.includes('UpdateTooFrequent')) return true;
+    if (error.message && error.message.includes("UpdateTooFrequent")) return true;
     if (error.code === ProjectRegistryError.UpdateTooFrequent) return true;
-    if (error.contractError === 'UpdateTooFrequent') return true;
-    if (error.data?.error === 'UpdateTooFrequent') return true;
+    if (error.contractError === "UpdateTooFrequent") return true;
+    if (error.data?.error === "UpdateTooFrequent") return true;
     return false;
   }
 }
