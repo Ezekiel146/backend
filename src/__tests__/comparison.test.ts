@@ -1,1 +1,87 @@
-aW1wb3J0IHJlcXVlc3QgZnJvbSAic3VwZXJ0ZXN0IjsKaW1wb3J0IGV4cHJlc3MsIHsgRXhwcmVzcyB9IGZyb20gImV4cHJlc3MiOwppbXBvcnQgY29tcGFyaXNvblJvdXRlciBmcm9tICIuLi9yb3V0ZXMvY29tcGFyaXNvbiI7CmltcG9ydCB7IGVycm9ySGFuZGxlciB9IGZyb20gIi4uL21pZGRsZXdhcmUvZXJyb3JzIjsKaW1wb3J0IHsgY29tcGFyZVByb2plY3RzLCBsb2FkUHJvamVjdE1ldHJpY3MgfSBmcm9tICIuLi9saWIvY29tcGFyaXNvbiI7CgpmdW5jdGlvbiBidWlsZEFwcCgpOiBFeHByZXNzIHsKICBjb25zdCBhcHAgPSBleHByZXNzKCk7CiAgYXBwLnVzZShleHByZXNzLmpzb24oKSk7CiAgYXBwLnVzZSgiL2FwaS9jb21wYXJpc29uIiwgY29tcGFyaXNvblJvdXRlcik7CiAgYXBwLnVzZShlcnJvckhhbmRsZXIpOwogIHJldHVybiBhcHA7Cn0KCmRlc2NyaWJlKCJjb21wYXJpc29uIHJvdXRlcyIsICgpID0+IHsKICBsZXQgYXBwOiBFeHByZXNzOwoKICBiZWZvcmVFYWNoKCgpID0+IHsKICAgIGFwcCA9IGJ1aWxkQXBwKCk7CiAgfSk7CgogIGl0KCJHRVQgL2FwaS9jb21wYXJpc29uIOKAlCBjb21wYXJlcyBwcm9qZWN0cyBzaWRlIGJ5IHNpZGUiLCBhc3luYyAoKSA9PiB7CiAgICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KGFwcCkuZ2V0KCIvYXBpL2NvbXBhcmlzb24/aWRzPTEsMiwzIikuZXhwZWN0KDIwMCk7CiAgICBleHBlY3QocmVzLmJvZHkucHJvamVjdHMpLnRvSGF2ZUxlbmd0aCgzKTsKICAgIGV4cGVjdChyZXMuYm9keS5tZXRyaWNzKS50b0JlRGVmaW5lZCgpOwogICAgZXhwZWN0KHJlcy5ib2R5LnN1bW1hcnkpLnRvQmVEZWZpbmVkKCk7CiAgICBleHBlY3QocmVzLmJvZHkuc3VtbWFyeS5oaWdoZXN0X2NvbWJpbmVkKS50b0JlRGVmaW5lZCgpOwogICAgZXhwZWN0KHJlcy5ib2R5LnN1bW1hcnkubG93ZXN0X2NvbWJpbmVkKS50b0JlRGVmaW5lZCgpOwogIH0pOwoKICBpdCgiR0VUIC9hcGkvY29tcGFyaXNvbiDigJQgNDAwIGZvciBtaXNzaW5nIGlkcyIsIGFzeW5jICgpID0+IHsKICAgIGNvbnN0IHJlcyA9IGF3YWl0IHJlcXVlc3QoYXBwKS5nZXQoIi9hcGkvY29tcGFyaXNvbiIpLmV4cGVjdCg0MDApOwogICAgZXhwZWN0KHJlcy5ib2R5LmVycm9yLmNvZGUpLnRvQmUoImJhZF9yZXF1ZXN0Iik7CiAgfSk7CgogIGl0KCJHRVQgL2FwaS9jb21wYXJpc29uIOKAlCA0MDAgZm9yIGludmFsaWQgaWQiLCBhc3luYyAoKSA9PiB7CiAgICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KGFwcCkuZ2V0KCIvYXBpL2NvbXBhcmlzb24/aWRzPWFiYyIpLmV4cGVjdCg0MDApOwogICAgZXhwZWN0KHJlcy5ib2R5LmVycm9yLmNvZGUpLnRvQmUoImJhZF9yZXF1ZXN0Iik7CiAgfSk7CgogIGl0KCJHRVQgL2FwaS9jb21wYXJpc29uIOKAlCA0MDAgZm9yIHRvbyBtYW55IGlkcyIsIGFzeW5jICgpID0+IHsKICAgIGNvbnN0IGlkcyA9IEFycmF5LmZyb20oeyBsZW5ndGg6IDIxIH0sIChfLCBpKSA9PiBpICsgMSkuam9pbigiLCIpOwogICAgY29uc3QgcmVzID0gYXdhaXQgcmVxdWVzdChhcHApLmdldChgL2FwaS9jb21wYXJpc29uP2lkcz0ke2lkc31gKS5leHBlY3QoNDAwKTsKICAgIGV4cGVjdChyZXMuYm9keS5lcnJvci5jb2RlKS50b0JlKCJiYWRfcmVxdWVzdCIpOwogIH0pOwoKICBpdCgiR0VUIC9hcGkvY29tcGFyaXNvbi9tZXRyaWNzIOKAlCByZXR1cm5zIGF2YWlsYWJsZSBtZXRyaWNzIiwgYXN5bmMgKCkgPT4gewogICAgY29uc3QgcmVzID0gYXdhaXQgcmVxdWVzdChhcHApLmdldCgiL2FwaS9jb21wYXJpc29uL21ldHJpY3MiKS5leHBlY3QoMjAwKTsKICAgIGV4cGVjdChyZXMuYm9keS5tZXRyaWNzKS50b0JlSW5zdGFuY2VPZihBcnJheSk7CiAgICBleHBlY3QocmVzLmJvZHkubWV0cmljcy5sZW5ndGgpLnRvQmVHcmVhdGVyVGhhbigwKTsKICAgIGV4cGVjdChyZXMuYm9keS5tZXRyaWNzWzBdKS50b0hhdmVQcm9wZXJ0eSgia2V5Iik7CiAgICBleHBlY3QocmVzLmJvZHkubWV0cmljc1swXSkudG9IYXZlUHJvcGVydHkoImxhYmVsIik7CiAgfSk7CgogIGl0KCJHRVQgL2FwaS9jb21wYXJpc29uL3Jhbmtpbmcg4oCUIHJhbmtzIHByb2plY3RzIGJ5IGNyaXRlcmlhIiwgYXN5bmMgKCkgPT4gewogICAgY29uc3QgcmVzID0gYXdhaXQgcmVxdWVzdChhcHApCiAgICAgIC5nZXQoIi9hcGkvY29tcGFyaXNvbi9yYW5raW5nP2lkcz0xLDIsMyZjcml0ZXJpYT1ncmVlbl9pbXBhY3QiKQogICAgICAuZXhwZWN0KDIwMCk7CiAgICBleHBlY3QocmVzLmJvZHkuY3JpdGVyaWEpLnRvQmUoImdyZWVuX2ltcGFjdCIpOwogICAgZXhwZWN0KHJlcy5ib2R5LnJhbmtpbmdzKS50b0hhdmVMZW5ndGgoMyk7CiAgICBleHBlY3QocmVzLmJvZHkucmFua2luZ3NbMF0pLnRvSGF2ZVByb3BlcnR5KCJyYW5rIik7CiAgICBleHBlY3QocmVzLmJvZHkucmFua2luZ3NbMF0ucmFuaykudG9CZSgxKTsKICB9KTsKCiAgaXQoIkdFVCAvYXBpL2NvbXBhcmlzb24vcmFua2luZyDigJQgNDAwIGZvciBpbnZhbGlkIGNyaXRlcmlhIiwgYXN5bmMgKCkgPT4gewogICAgY29uc3QgcmVzID0gYXdhaXQgcmVxdWVzdChhcHApCiAgICAgIC5nZXQoIi9hcGkvY29tcGFyaXNvbi9yYW5raW5nP2lkcz0xLDIsMyZjcml0ZXJpYT1pbnZhbGlkIikKICAgICAgLmV4cGVjdCg0MDApOwogICAgZXhwZWN0KHJlcy5ib2R5LmVycm9yLmNvZGUpLnRvQmUoImJhZF9yZXF1ZXN0Iik7CiAgfSk7CgogIGl0KCJHRVQgL2FwaS9jb21wYXJpc29uL2V4cG9ydCDigJQgcmV0dXJucyBDU1YiLCBhc3luYyAoKSA9PiB7CiAgICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KGFwcCkuZ2V0KCIvYXBpL2NvbXBhcmlzb24vZXhwb3J0P2lkcz0xLDIiKS5leHBlY3QoMjAwKTsKICAgIGV4cGVjdChyZXMuaGVhZGVyc1siY29udGVudC10eXBlIl0pLnRvTWF0Y2goL3RleHRcL2Nzd i8pOwogICAgZXhwZWN0KHJlcy50ZXh0KS50b0NvbnRhaW4oInByb2plY3RfaWQiKTsKICB9KTsKCiAgaXQoIkdFVCAvYXBpL2NvbXBhcmlzb24vcmFua2luZy9leHBvcnQg4oCUIHJldHVybnMgcmFua2luZyBDU1YiLCBhc3luYyAoKSA9PiB7CiAgICBjb25zdCByZXMgPSBhd2FpdCByZXF1ZXN0KGFwcCkKICAgICAgLmdldCgiL2FwaS9jb21wYXJpc29uL3JhbmtpbmcvZXhwb3J0P2lkcz0xLDIsMyZjcml0ZXJpYT1jcmVkaXRfcXVhbGl0eSIpCiAgICAgIC5leHBlY3QoMjAwKTsKICAgIGV4cGVjdChyZXMuaGVhZGVyc1siY29udGVudC10eXBlIl0pLnRvTWF0Y2goL3RleHRcL2Nzd i8pOwogICAgZXhwZWN0KHJlcy50ZXh0KS50b0NvbnRhaW4oInJhbmsscHJvamVjdF9pZCIpOwogIH0pOwp9KTsKCmRlc2NyaWJlKCJjb21wYXJlUHJvamVjdHMgc3VtbWFyeSBzZW1hbnRpY3MiLCAoKSA9PiB7CiAgaXQoImhpZ2hlc3RfY29tYmluZWQgcmV0dXJucyB0aGUgaGlnaGVzdCBjb21iaW5lZCBzY29yZSB2YWx1ZSwgbm90IGEgcHJvamVjdCBpZCIsICgpID0+IHsKICAgIGNvbnN0IGlkcyA9IFsxLCAyLCAzXTsKICAgIGNvbnN0IHByb2plY3RzID0gbG9hZFByb2plY3RNZXRyaWNzKGlkcyk7CiAgICBjb25zdCByZXN1bHQgPSBjb21wYXJlUHJvamVjdHMoaWRzKTsKICAgIGNvbnN0IGV4cGVjdGVkTWF4ID0gTWF0aC5tYXgoLi4ucHJvamVjdHMubWFwKChwKSA9PiBwLmNvbWJpbmVkX3Njb3JlKSk7CiAgICBleHBlY3QocmVzdWx0LnN1bW1hcnkuaGlnaGVzdF9jb21iaW5lZCkudG9CZShleHBlY3RlZE1heCk7CiAgICBleHBlY3QoaWRzKS50b0NvbnRhaW4ocmVzdWx0LnN1bW1hcnkuaGlnaGVzdF9jb21iaW5lZCBhcyBudW1iZXIpOwogIH0pOwoKICBpdCgibG93ZXN0X2NvbWJpbmVkIHJldHVybnMgdGhlIGxvd2VzdCBjb21iaW5lZCBzY29yZSB2YWx1ZSwgbm90IGEgcHJvamVjdCBpZCIsICgpID0+IHsKICAgIGNvbnN0IGlkcyA9IFsxLCAyLCAzXTsKICAgIGNvbnN0IHByb2plY3RzID0gbG9hZFByb2plY3RNZXRyaWNzKGlkcyk7CiAgICBjb25zdCByZXN1bHQgPSBjb21wYXJlUHJvamVjdHMoaWRzKTsKICAgIGNvbnN0IGV4cGVjdGVkTWluID0gTWF0aC5taW4oLi4ucHJvamVjdHMubWFwKChwKSA9PiBwLmNvbWJpbmVkX3Njb3JlKSk7CiAgICBleHBlY3QocmVzdWx0LnN1bW1hcnkubG93ZXN0X2NvbWJpbmVkKS50b0JlKGV4cGVjdGVkTWluKTsKICB9KTsKCiAgaXQoImhpZ2hlc3RfY29tYmluZWQgYW5kIGxvd2VzdF9jb21iaW5lZCBhcmUgbnVtZXJpYyBzY29yZXMsIG5vdCBwcm9qZWN0IGlkcyIsICgpID0+IHsKICAgIGNvbnN0IGlkcyA9IFsxLCAyLCAzXTsKICAgIGNvbnN0IHByb2plY3RzID0gbG9hZFByb2plY3RNZXRyaWNzKGlkcyk7CiAgICBjb25zdCBwcm9qZWN0SWRzID0gbmV3IFNldChwcm9qZWN0cy5tYXAoKHApID0+IHAuaWQpKTsKICAgIGNvbnN0IHJlc3VsdCA9IGNvbXBhcmVQcm9qZWN0cyhpZHMpOwogICAgZXhwZWN0KHR5cGVvZiByZXN1bHQuc3VtbWFyeS5oaWdoZXN0X2NvbWJpbmVkKS50b0JlKCJudW1iZXIiKTsKICAgIGV4cGVjdCh0eXBlb2YgcmVzdWx0LnN1bW1hcnkubG93ZXN0X2NvbWJpbmVkKS50b0JlKCJudW1iZXIiKTsKICAgIC8vIFNjb3JlcyBzaG91bGQgbm90IGFjY2lkZW50YWxseSBtYXRjaCB0aGUgc2V0IG9mIHByb2plY3QgSURzIGluIGEgd2F5IHRoYXQgaW1wbGllcyB0aGV5IGFyZSBJRHMuCiAgICAvLyAoVGhpcyBpcyBhIGhlbHBmdWwgZ3VhcmQgZm9yIHRoZSBjb21tb24gY2FzZSB3aGVyZSBJRHMgYXJlIHNtYWxsIGludGVnZXJzLikKICAgIGV4cGVjdChyZXN1bHQuc3VtbWFyeS5oaWdoZXN0X2NvbWJpbmVkKS50b0JlR3JlYXRlclRoYW5PckVxdWFsKDApOwogICAgZXhwZWN0KHJlc3VsdC5zdW1tYXJ5Lmxvd2VzdF9jb21iaW5lZCkudG9CZSBHcmVhdGVyVGhhbk9yRXF1YWwoMCk7CiAgfSk7CgogIGl0KCJoaWdoZXN0X2NvbWJpbmVkIGlzIGdyZWF0ZXIgdGhhbiBvciBlcXVhbCB0byBsb3dlc3RfY29tYmluZWQiLCAoKSA9PiB7CiAgICBjb25zdCByZXN1bHQgPSBjb21wYXJlUHJvamVjdHMoWzEsIDIsIDNdKTsKICAgIGV4cGVjdChyZXN1bHQuc3VtbWFyeS5oaWdoZXN0X2NvbWJpbmVkIGFzIG51bWJlcikudG9CZUdyZWF0ZXJUaGFuT3JFcXVhbCgKICAgICAgcmVzdWx0LnN1bW1hcnkubG93ZXN0X2NvbWJpbmVkIGFzIG51bWJlciwKICAgICk7CiAgfSk7CgogIGl0KCJoaWdoZXN0X2NvbWJpbmVkIGFuZCBsb3dlc3RfY29tYmluZWQgYXJlIG51bGwgZm9yIGVtcHR5IGlkIGxpc3QiLCAoKSA9PiB7CiAgICBjb25zdCByZXN1bHQgPSBjb21wYXJlUHJvamVjdHMoW10pOwogICAgZXhwZWN0KHJlc3VsdC5zdW1tYXJ5LmhpZ2hlc3RfY29tYmluZWQpLnRvQmVOdWxsKCk7CiAgICBleHBlY3QocmVzdWx0LnN1bW1hcnkubG93ZXN0X2NvbWJpbmVkKS50b0JlTnVsbCgpOwogIH0pOwp9KTsK
+import request from "supertest";
+import express, { Express } from "express";
+import comparisonRouter from "../routes/comparison";
+import { errorHandler } from "../middleware/errors";
+
+function buildApp(): Express {
+  const app = express();
+  app.use(express.json());
+  app.use("/api/comparison", comparisonRouter);
+  app.use(errorHandler);
+  return app;
+}
+
+describe("comparison routes", () => {
+  let app: Express;
+
+  beforeEach(() => {
+    app = buildApp();
+  });
+
+  it("GET /api/comparison — compares projects side by side", async () => {
+    const res = await request(app).get("/api/comparison?ids=1,2,3").expect(200);
+    expect(res.body.projects).toHaveLength(3);
+    expect(res.body.metrics).toBeDefined();
+    expect(res.body.summary).toBeDefined();
+    expect(res.body.summary.highest_combined).toBeDefined();
+    expect(res.body.summary.lowest_combined).toBeDefined();
+    const scores = res.body.projects.map((p: { combined_score: number }) => p.combined_score);
+    expect(res.body.summary.highest_combined).toBe(Math.max(...scores));
+    expect(res.body.summary.lowest_combined).toBe(Math.min(...scores));
+  });
+
+  it("GET /api/comparison — 400 for missing ids", async () => {
+    const res = await request(app).get("/api/comparison").expect(400);
+    expect(res.body.error.code).toBe("bad_request");
+  });
+
+  it("GET /api/comparison — 400 for invalid id", async () => {
+    const res = await request(app).get("/api/comparison?ids=abc").expect(400);
+    expect(res.body.error.code).toBe("bad_request");
+  });
+
+  it("GET /api/comparison — 400 for too many ids", async () => {
+    const ids = Array.from({ length: 21 }, (_, i) => i + 1).join(",");
+    const res = await request(app).get(`/api/comparison?ids=${ids}`).expect(400);
+    expect(res.body.error.code).toBe("bad_request");
+  });
+
+  it("GET /api/comparison/metrics — returns available metrics", async () => {
+    const res = await request(app).get("/api/comparison/metrics").expect(200);
+    expect(res.body.metrics).toBeInstanceOf(Array);
+    expect(res.body.metrics.length).toBeGreaterThan(0);
+    expect(res.body.metrics[0]).toHaveProperty("key");
+    expect(res.body.metrics[0]).toHaveProperty("label");
+  });
+
+  it("GET /api/comparison/ranking — ranks projects by criteria", async () => {
+    const res = await request(app)
+      .get("/api/comparison/ranking?ids=1,2,3&criteria=green_impact")
+      .expect(200);
+    expect(res.body.criteria).toBe("green_impact");
+    expect(res.body.rankings).toHaveLength(3);
+    expect(res.body.rankings[0]).toHaveProperty("rank");
+    expect(res.body.rankings[0].rank).toBe(1);
+  });
+
+  it("GET /api/comparison/ranking — 400 for invalid criteria", async () => {
+    const res = await request(app)
+      .get("/api/comparison/ranking?ids=1,2,3&criteria=invalid")
+      .expect(400);
+    expect(res.body.error.code).toBe("bad_request");
+  });
+
+  it("GET /api/comparison/export — returns CSV", async () => {
+    const res = await request(app).get("/api/comparison/export?ids=1,2").expect(200);
+    expect(res.headers["content-type"]).toMatch(/text\/csv/);
+    expect(res.text).toContain("project_id");
+  });
+
+  it("GET /api/comparison/ranking/export — returns ranking CSV", async () => {
+    const res = await request(app)
+      .get("/api/comparison/ranking/export?ids=1,2,3&criteria=credit_quality")
+      .expect(200);
+    expect(res.headers["content-type"]).toMatch(/text\/csv/);
+    expect(res.text).toContain("rank,project_id");
+  });
+});
