@@ -250,7 +250,7 @@ export async function getMigrationHealth(): Promise<{
   missing_files: string[];
 }> {
   const fallback = {
-    status: "healthy" as const,
+    status: "unhealthy" as const,
     applied_count: 0,
     pending_count: 0,
     last_migration: null,
@@ -280,12 +280,23 @@ export async function getMigrationHealth(): Promise<{
   };
 
   try {
+    const configuredTimeout = Number(process.env.MIGRATION_HEALTH_TIMEOUT_MS);
+    const timeoutMs =
+      Number.isFinite(configuredTimeout) && configuredTimeout > 0
+        ? configuredTimeout
+        : 1000;
     const timeout = new Promise<never>((_, reject) => {
-      const timer = setTimeout(() => reject(new Error("Migration health check timeout")), 1000);
+      const timer = setTimeout(
+        () => reject(new Error(`Migration health check timeout after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
       if (typeof timer.unref === "function") timer.unref();
     });
     return await Promise.race([check(), timeout]);
-  } catch {
+  } catch (err) {
+    logger.error("[migrations] health check failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return fallback;
   }
 }
