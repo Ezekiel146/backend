@@ -15,7 +15,7 @@ import historyRouter from "./routes/history";
 import panelsRouter from "./routes/panels";
 import metadataRouter from "./routes/metadata";
 import dashboardRouter from "./routes/dashboard";
-import emailRouter from "./routes/email";
+import emailRouter, { publicEmailRouter } from "./routes/email";
 import anomalyRouter from "./routes/anomaly";
 import scoringFormulasRouter from "./routes/scoring-formulas";
 import chainsRouter from "./routes/chains";
@@ -332,6 +332,11 @@ v1.use("/webhooks", ipWhitelist, adminLimiter, requestSigning, webhooksRouter);
 v1.use("/panels", ipWhitelist, adminLimiter, requestSigning, panelsRouter);
 v1.use("/metadata", ipWhitelist, adminLimiter, metadataRouter);
 v1.use("/dashboards", publicLimiter, apiKeyAuth, dashboardRouter);
+// The public router hosts GET/POST /unsubscribe so mail-client link-follows
+// (no admin headers, no IP allowlist) actually work. It MUST be mounted
+// before the admin router so Express matches the public handlers first;
+// everything else falls through to the admin mount below (#763).
+v1.use("/email", publicLimiter, publicEmailRouter);
 v1.use("/email", ipWhitelist, adminLimiter, requestSigning, emailRouter);
 v1.use("/anomaly", publicLimiter, anomalyRouter);
 v1.use("/scoring/formulas", ipWhitelist, adminLimiter, requestSigning, scoringFormulasRouter);
@@ -364,6 +369,7 @@ app.use("/api/webhooks", ipWhitelist, adminLimiter, webhooksRouter);
 app.use("/api/panels", ipWhitelist, adminLimiter, panelsRouter);
 app.use("/api/metadata", ipWhitelist, adminLimiter, metadataRouter);
 app.use("/api/dashboard", publicLimiter, apiKeyAuth, dashboardRouter);
+app.use("/api/email", publicLimiter, publicEmailRouter);
 app.use("/api/email", ipWhitelist, adminLimiter, emailRouter);
 app.use("/api/comparison", publicLimiter, apiKeyAuth, comparisonRouter);
 app.use("/api/benchmarking", publicLimiter, apiKeyAuth, benchmarkingRouter);
