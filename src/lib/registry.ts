@@ -89,8 +89,11 @@ export async function updateImpactScore(
       );
 
       // Record signer balance for SLO monitoring
-      const balances = (account as any).balances || [];
-      const nativeBalance = balances.find((b: any) => b.asset_type === "native");
+      interface AccountWithBalances {
+        balances?: Array<{ asset_type: string; balance: string }>;
+      }
+      const balances = (account as AccountWithBalances).balances || [];
+      const nativeBalance = balances.find((b) => b.asset_type === "native");
       if (nativeBalance) {
         const xlmBalance = parseFloat(nativeBalance.balance);
         oracleSignerBalance.set(xlmBalance);
@@ -99,7 +102,7 @@ export async function updateImpactScore(
       const rawSeq =
         typeof account.sequenceNumber === "function"
           ? account.sequenceNumber()
-          : (account as any).sequence;
+          : (account as unknown as { sequence: string }).sequence;
       const fetchedSeq = BigInt(rawSeq);
       if (localSequence !== null && fetchedSeq < localSequence) {
         throw new StaleSequenceError(

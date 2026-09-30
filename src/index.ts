@@ -110,11 +110,11 @@ if (initialAdminUserId) {
 
 // Initialize APM in background — errors are logged but don't block startup
 initApm().catch((err: Error) => {
-  console.error("[startup] APM initialization failed:", err.message);
+  logger.error("[startup] APM initialization failed:", { error: err.message });
 });
 
 if (!process.env.ADMIN_API_KEY) {
-  console.warn(
+  logger.warn(
     "[startup] WARNING: ADMIN_API_KEY is not set. Admin endpoints will return 500 errors.",
   );
 }
@@ -487,7 +487,7 @@ scheduleCron(
   "*/5 * * * *",
   async () => {
     if (isShuttingDown) return;
-    if (isRpcOutageExtended(300_000)) {
+    if (isRpcOutageExtended(config.RPC_OUTAGE_THRESHOLD_MS)) {
       const status = getRpcStatus();
       logger.error(
         `[alert] Stellar RPC outage detected: ` +
@@ -555,7 +555,7 @@ const serverPromise = initializeBenchmarkSamples().then(async (sampleSize) => {
   // Then start gRPC server
   try {
     grpcServer = await new Promise<grpc.Server>((resolve, reject) => {
-      const server = startGrpcServer(50051, (err, port) => {
+      const server = startGrpcServer(config.GRPC_PORT, (err, port) => {
         logger.error("[startup] gRPC server bind failed", {
           ...logger.formatError(err),
           port,

@@ -116,6 +116,8 @@ function buildConfig() {
     DB_POOL_MAX: numEnv("DB_POOL_MAX", 10),
     DB_POOL_ACQUIRE_TIMEOUT_MS: numEnv("DB_POOL_ACQUIRE_TIMEOUT_MS", 5000),
     DB_POOL_HEALTH_CHECK_INTERVAL_MS: numEnv("DB_POOL_HEALTH_CHECK_INTERVAL_MS", 30000),
+    DB_ACQUIRE_TIMEOUT_MS: numEnv("DB_ACQUIRE_TIMEOUT_MS", 30000),
+    DB_IDLE_TIMEOUT_MS: numEnv("DB_IDLE_TIMEOUT_MS", 60000),
 
     /** Circuit breaker */
     RPC_BREAKER_FAILURE_THRESHOLD: numEnv(
@@ -128,7 +130,7 @@ function buildConfig() {
     ),
 
     /** Transaction retries */
-    TX_MAX_RETRIES: numEnv("TX_MAX_RETRIES", 4),
+    TX_MAX_RETRIES: numEnv("TX_MAX_RETRIES", 10),
     TX_RETRY_BASE_DELAY_MS: numEnv("TX_RETRY_BASE_DELAY_MS", 200),
     TX_RETRY_MAX_DELAY_MS: numEnv("TX_RETRY_MAX_DELAY_MS", 10000),
 
@@ -189,6 +191,23 @@ function buildConfig() {
     /** Vault event indexer */
     VAULT_EVENT_INDEXER_START_LEDGER: numEnv("VAULT_EVENT_INDEXER_START_LEDGER", 0),
     VAULT_EVENT_INDEXER_ENABLED: optionalEnv("VAULT_EVENT_INDEXER_ENABLED", "false"),
+
+    /** gRPC */
+    GRPC_PORT: numEnv("GRPC_PORT", 50051),
+
+    /** RPC Outage Detection */
+    RPC_OUTAGE_THRESHOLD_MS: numEnv("RPC_OUTAGE_THRESHOLD_MS", 300000),
+
+    /** Health Check */
+    HEALTH_CHECK_TIMEOUT_MS: numEnv("HEALTH_CHECK_TIMEOUT_MS", 1000),
+
+    /** Batch Job Store */
+    BATCH_JOB_TTL_MS: numEnv("BATCH_JOB_TTL_MS", 3_600_000),
+    BATCH_JOB_MAX_SIZE: numEnv("BATCH_JOB_MAX_SIZE", 1000),
+
+    /** Webhook Store */
+    WEBHOOK_CLEANUP_INTERVAL_MS: numEnv("WEBHOOK_CLEANUP_INTERVAL_MS", 3_600_000),
+    WEBHOOK_STALE_THRESHOLD_MS: numEnv("WEBHOOK_STALE_THRESHOLD_MS", 86_400_000),
     VAULT_EVENT_INDEXER_MAX_EVENTS: positiveIntEnv("VAULT_EVENT_INDEXER_MAX_EVENTS", 1000),
   } as const;
 }
