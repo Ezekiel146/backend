@@ -5,11 +5,9 @@ import { config } from "../config";
 /**
  * Batch transaction support (#54).
  *
- * Soroban native batch transactions are not yet available on mainnet.
- * This module defines the batch interface and falls back to sequential
- * processing until the capability is detected. Once Soroban exposes
- * batch support, `isSorobanBatchAvailable()` should return true and
- * `runBatchNative()` can be wired in.
+ * This module provides concurrent batch processing for transactions.
+ * When Soroban native batch transactions become available, they can be
+ * integrated as a replacement for the current concurrent sequential approach.
  */
 
 export type BatchStatus = "queued" | "running" | "completed" | "failed";
@@ -52,17 +50,6 @@ export interface BatchBenchmark {
 const jobs = new Map<string, BatchJob>();
 const BATCH_JOB_TTL_MS = config.BATCH_JOB_TTL_MS;
 const BATCH_JOB_MAX_SIZE = config.BATCH_JOB_MAX_SIZE;
-
-/**
- * Detect whether the connected Soroban RPC exposes native batch transaction
- * support. Currently always returns false – update this check once Soroban
- * ships the capability (monitor: https://github.com/stellar/stellar-core).
- */
-export function isSorobanBatchAvailable(): boolean {
-  // TODO: replace with an actual capability-detection call against the RPC
-  // e.g. check server info flags or protocol version >= BATCH_PROTOCOL_VERSION
-  return false;
-}
 
 /**
  * Evict completed/failed jobs older than TTL and enforce max size limit.
@@ -121,36 +108,16 @@ export function getJob(id: string): BatchJob | undefined {
 }
 
 /**
- * Run a batch job.
- * Routes to `runBatchNative()` when Soroban batch is available,
- * otherwise falls back to concurrent sequential processing.
+ * Run a batch job using concurrent sequential processing.
  */
 export async function runJob(
   job: BatchJob,
   processor: (projectId: number) => Promise<BatchResult>,
 ): Promise<void> {
-  if (isSorobanBatchAvailable()) {
-    await runBatchNative(job, processor);
-  } else {
-    await runBatchSequential(job, processor);
-  }
-}
-
-/**
- * Placeholder for future native Soroban batch execution.
- * Implement once the RPC exposes batch transaction support.
- */
-async function runBatchNative(
-  job: BatchJob,
-  processor: (projectId: number) => Promise<BatchResult>,
-): Promise<void> {
-  // Native batch: submit all ops in a single transaction envelope.
-  // Not yet available — fall back to sequential until implemented.
-  logger.warn("[batch] native Soroban batch detected but not yet implemented; falling back");
   await runBatchSequential(job, processor);
 }
 
-/** Sequential (concurrent-limited) fallback processing. */
+/** Sequential (concurrent-limited) processing. */
 async function runBatchSequential(
   job: BatchJob,
   processor: (projectId: number) => Promise<BatchResult>,
