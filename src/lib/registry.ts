@@ -188,3 +188,58 @@ export async function getTotalProjects(): Promise<number> {
     return Number(scValToNative(retval));
   });
 }
+
+/**
+ * Simulate `is_paused()` on the registry contract (#765).
+ *
+ * Every mutating call the cron submits is gated by `require_not_paused` inside
+ * the contract, so a paused registry rejects every `update_impact_score` with
+ * a `Paused` error. Checking upfront skips a whole round of pointless
+ * simulations, retries, and error-log spam during an emergency pause and
+ * prevents the batch from tripping the "ALL projects failed" alert.
+ */
+export async function isRegistryPaused(): Promise<boolean> {
+  return withRpcConnection(async (client) => {
+    const contract = new Contract(REGISTRY_CONTRACT_ID);
+    const dummyAccount = new Account(
+      "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+      "0",
+    );
+
+    const tx = new TransactionBuilder(dummyAccount, { fee: BASE_FEE, networkPassphrase })
+      .addOperation(contract.call("is_paused"))
+      .setTimeout(config.TX_TIMEOUT_SECONDS)
+      .build();
+
+    const end = stellarRpcDuration.startTimer({ operation: "simulateTransaction" });
+
+    let sim: rpc.Api.SimulateTransactionResponse;
+    try {
+      sim = await withRpcRetry(
+        () => client.simulateTransaction(tx),
+        "stellar:simulateTransaction:isPaused",
+      );
+    } catch (err) {
+      end();
+      stellarRpcTotal.inc({ operation: "simulateTransaction", result: "failure" });
+      throw err;
+    }
+
+    if ("error" in sim) {
+      end();
+      stellarRpcTotal.inc({ operation: "simulateTransaction", result: "failure" });
+      throw new Error(sim.error);
+    }
+
+    const retval = sim.result?.retval;
+    if (retval === undefined) {
+      end();
+      stellarRpcTotal.inc({ operation: "simulateTransaction", result: "failure" });
+      throw new Error("is_paused simulation returned no result value");
+    }
+
+    end();
+    stellarRpcTotal.inc({ operation: "simulateTransaction", result: "success" });
+    return Boolean(scValToNative(retval));
+  });
+}

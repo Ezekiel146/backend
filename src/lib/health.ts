@@ -7,18 +7,25 @@ import { listFlags } from "./feature-flags";
 
 const startedAt = Date.now();
 
-export type CronStatus = "success" | "error";
+export type CronStatus = "success" | "error" | "skipped";
 
 export interface CronRun {
   name: string;
   status: CronStatus;
   at: string; // ISO 8601
+  /** Present when status is "skipped"; e.g. "paused" (#765). */
+  reason?: string;
 }
 
 let lastCronRun: CronRun | null = null;
 
-export function recordCronRun(name: string, status: CronStatus): void {
-  lastCronRun = { name, status, at: new Date().toISOString() };
+export function recordCronRun(name: string, status: CronStatus, reason?: string): void {
+  lastCronRun = {
+    name,
+    status,
+    at: new Date().toISOString(),
+    ...(reason ? { reason } : {}),
+  };
 }
 
 export interface SatelliteHealthReport {
