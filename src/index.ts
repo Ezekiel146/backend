@@ -450,7 +450,7 @@ scheduleCron(
   "*/5 * * * *",
   async () => {
     if (isShuttingDown) return;
-    if (isRpcOutageExtended(300_000)) {
+    if (isRpcOutageExtended(config.RPC_OUTAGE_THRESHOLD_MS)) {
       const status = getRpcStatus();
       logger.error(
         `[alert] Stellar RPC outage detected: ` +
@@ -557,7 +557,7 @@ app.get("/graphql-playground", (req, res) => {
 });
 
 // Start high-performance gRPC server
-const grpcServer = startGrpcServer(50051);
+const grpcServer = startGrpcServer(config.GRPC_PORT);
 
 // Periodically clear cached secrets so a rotated/compromised upstream
 // secret doesn't stay cached indefinitely (gated on SECRETS_ROTATION_ENABLED).
