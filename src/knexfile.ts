@@ -11,8 +11,8 @@ const baseConfig: Knex.Config = {
   pool: {
     min: 2,
     max: 10,
-    acquireTimeoutMillis: 30000,
-    idleTimeoutMillis: 60000,
+    acquireTimeoutMillis: Number(process.env.DB_ACQUIRE_TIMEOUT_MS) || 30000,
+    idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS) || 60000,
   },
 };
 
@@ -24,10 +24,15 @@ const baseConfig: Knex.Config = {
 export function getSslConfig(): { rejectUnauthorized: true; ca?: string } {
   const caPath = process.env.DB_SSL_CA_PATH || process.env.DB_SSL_CA || process.env.DATABASE_CA;
   if (caPath) {
-    return {
-      ca: fs.readFileSync(caPath, "utf8"),
-      rejectUnauthorized: true,
-    };
+    try {
+      return {
+        ca: fs.readFileSync(caPath, "utf8"),
+        rejectUnauthorized: true,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to read SSL CA file at ${caPath}: ${message}`, { cause: error });
+    }
   }
   return { rejectUnauthorized: true };
 }
@@ -82,8 +87,8 @@ const config: Record<string, Knex.Config> = {
       ssl: getSslConfig(),
     },
     pool: {
-      min: 5,
-      max: 30,
+      min: Number(process.env.DB_POOL_MIN) || 5,
+      max: Number(process.env.DB_POOL_MAX) || 30,
     },
   },
 };

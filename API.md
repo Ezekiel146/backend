@@ -2,6 +2,11 @@
 
 Base URL (local): `http://localhost:3001`
 
+> **Frontend integration:** set `NEXT_PUBLIC_API_URL` to the versioned base and
+> **include `/v1`**, e.g. `http://localhost:3001/v1`. The frontend calls
+> `${NEXT_PUBLIC_API_URL}/projects`; a base without `/v1` resolves to the
+> deprecated `/api` paths (or `404`).
+
 All REST responses default to JSON unless an export format (e.g. `format=csv`) is explicitly requested.
 
 Errors follow a consistent structure:
@@ -20,9 +25,11 @@ Errors follow a consistent structure:
 | Status | `error.code`           | When                                                         |
 | ------ | ---------------------- | ------------------------------------------------------------ |
 | `400`  | `bad_request`          | Invalid parameters, body validation error, or malformed JSON |
+| `400`  | `invalid_telemetry`    | Telemetry payload matches neither accepted schema           |
 | `401`  | `unauthorized`         | Missing or invalid authentication credentials / bearer token |
 | `403`  | `forbidden`            | Client IP not whitelisted or role insufficient               |
 | `404`  | `not_found`            | Resource or unknown route does not exist                     |
+| `413`  | `payload_too_large`    | Request body exceeds the configured size limit               |
 | `429`  | `too_many_requests`    | Rate limit exceeded (check `Retry-After` header)             |
 | `500`  | `server_misconfigured` | Admin endpoint called without `ADMIN_API_KEY` configured     |
 | `500`  | `internal_error`       | Unexpected server error                                      |
@@ -53,6 +60,8 @@ Configurable environment variables (see [`.env.example`](./.env.example)):
 
 - Public tier: `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX`
 - Admin tier: `RATE_LIMIT_ADMIN_WINDOW_MS`, `RATE_LIMIT_ADMIN_MAX`
+- Telemetry tier (`POST /v1/telemetry`): `TELEMETRY_RATE_LIMIT_WINDOW_MS`,
+  `TELEMETRY_RATE_LIMIT_MAX`
 
 ---
 
@@ -77,6 +86,7 @@ Replace the `/api` prefix with `/v1` (e.g. `/api/projects` → `/v1/projects`). 
 | :--------------------- | :--------------------------------------- | :-------------------------- | :-------------- | :------------------------------------------------------------------------------------------ |
 | **System & Health**    | `/health`, `/ready`, `/metrics`, `/docs` | Public                      | None / Default  | Liveness, readiness, Prometheus metrics, and OpenAPI/Swagger documentation                  |
 | **Telemetry (IoT)**    | `/v1/iot`                                | Public / Consumer Key       | Public          | Simulated solar panel readings and satellite NDVI vegetation telemetry                      |
+| **Telemetry (Client)** | `/v1/telemetry`                          | Public                      | Telemetry       | Frontend error-report and Web Vitals beacon ingest with PII scrubbing                        |
 | **Projects**           | `/v1/projects`                           | Public / Consumer Key       | Public          | Paginated, filterable, and sortable project registry and detail                             |
 | **Score History**      | `/v1/projects/:id/history`               | Public / Consumer Key       | Public          | Historical score logs and score direction trend evaluation                                  |
 | **Aggregation**        | `/v1/projects/aggregate`                 | Public / Consumer Key       | Public          | Portfolio-level aggregate score calculations by category and region                         |
@@ -196,6 +206,80 @@ Exports distributed trace spans collected via OpenTelemetry.
 }
 ```
 
+### `POST /v1/telemetry`
+
+Ingest frontend error reports and Web Vitals measurements (#770). The browser
+sends the payload with `navigator.sendBeacon` as a `text/plain` Blob containing
+a JSON string; `application/json` is also accepted. No authentication, API key,
+or CSRF token is required — the route carries no cookies/session and browser
+beacons cannot set custom headers. The route is rate limited per client IP.
+
+Body size is bounded by `TELEMETRY_BODY_SIZE_LIMIT` (default `64kb`) for
+`text/plain`; `application/json` also remains bounded by `BODY_SIZE_LIMIT`.
+
+**ErrorReport**
+
+| Field               | Type             | Required | Notes                                                        |
+| :------------------ | :--------------- | :------- | :----------------------------------------------------------- |
+| `kind`              | string           | Yes      | Metric label; `[A-Za-z0-9_.:-]{1,64}`                        |
+| `message`           | string           | Yes      | 1–8192 chars; PII-scrubbed before use                        |
+| `stack`             | string           | No       | Up to 16384 chars                                            |
+| `url`               | string           | No       | Up to 2048 chars                                             |
+| `userAgent`         | string           | No       | Up to 1024 chars                                             |
+| `contractErrorCode` | number \| string | No       | Soroban error code (e.g. `22`)                               |
+| `contractErrorName` | string           | No       | Metric label; `[A-Za-z0-9_.:-]{1,64}`; defaults to `none`     |
+| `timestamp`         | number           | No       | Client epoch-ms                                              |
+
+**WebVitalReport**
+
+| Field            | Type   | Required | Notes                                                            |
+| :--------------- | :----- | :------- | :--------------------------------------------------------------- |
+| `name`           | string | Yes      | One of `CLS`, `FCP`, `INP`, `LCP`, `TTFB`, `FID`                 |
+| `value`          | number | Yes      | Finite, `>= 0`                                                    |
+| `rating`         | string | Yes      | One of `good`, `needs-improvement`, `poor`                        |
+| `id`             | string | No       | Measurement id                                                    |
+| `delta`          | number | No       | Delta since previous report                                       |
+| `navigationType` | string | No       | Navigation type                                                   |
+| `timestamp`      | number | No       | Client epoch-ms                                                   |
+
+**Security / PII**
+
+A second scrub pass rejects/strips anything resembling a Stellar address
+(`G...`), secret seed (`S...`), contract id (`C...`), XDR/base64 blob, or e-mail
+address. Reports are never persisted; only validated label fields reach the
+Prometheus registry. A redacted value used as a metric label fails validation
+and returns `400`.
+
+**Metrics**
+
+- `frontend_errors_total{kind, contract_error_name}` — counter
+- `frontend_web_vital{name, rating}` — histogram (exposed as
+  `frontend_web_vital_bucket`/`_sum`/`_count`)
+
+**Responses**
+
+| Status | Body / meaning                                                        |
+| :----- | :-------------------------------------------------------------------- |
+| `204`  | Accepted; empty body                                                  |
+| `400`  | `invalid_telemetry` — malformed JSON or neither schema matches         |
+| `413`  | `payload_too_large` — body over `TELEMETRY_BODY_SIZE_LIMIT`            |
+| `429`  | `too_many_requests` — per-IP telemetry rate limit exceeded            |
+
+```bash
+curl -X POST http://localhost:3001/v1/telemetry \
+  -H 'Content-Type: text/plain' \
+  --data '{"kind":"runtime","message":"boom","contractErrorName":"InvalidScore"}'
+# -> 204 No Content
+```
+
+> The unversioned alias `POST /api/telemetry` is deprecated like the rest of
+> `/api/*`.
+
+> **Frontend follow-up:** the frontend lives in a separate repository. Set
+> `NEXT_PUBLIC_ERROR_REPORT_URL` to `<api-base>/v1/telemetry` in the frontend's
+> `.env.example`. Optionally set `TELEMETRY_OTLP_ENABLED=true` on the backend to
+> forward accepted reports to the OTLP exporter.
+
 ---
 
 ## 2. IoT Telemetry Endpoints
@@ -243,8 +327,10 @@ Paginated, filterable list of projects with latest scores and telemetry.
 
 | Param        | In    | Type   | Rules                                                                                                                                | Default |
 | :----------- | :---- | :----- | :----------------------------------------------------------------------------------------------------------------------------------- | :------ |
-| `limit`      | query | int    | Integer `1..100`                                                                                                                     | `10`    |
-| `cursor`     | query | int    | Non-negative integer offset                                                                                                          | `0`     |
+| `page`       | query | int    | 1-based page number (`>= 1`)                                                                                                         | `1`     |
+| `pageSize`   | query | int    | Integer `1..100`                                                                                                                     | `10`    |
+| `limit`      | query | int    | Alias for `pageSize` (kept for existing clients)                                                                                     | `10`    |
+| `cursor`     | query | int    | Legacy offset alias. When present it is applied as the offset and takes precedence over `page`                                       | —       |
 | `min_score`  | query | number | Minimum credit quality score filter                                                                                                  | —       |
 | `max_score`  | query | number | Maximum credit quality score filter                                                                                                  | —       |
 | `min_date`   | query | number | Minimum timestamp (ms)                                                                                                               | —       |
@@ -252,7 +338,7 @@ Paginated, filterable list of projects with latest scores and telemetry.
 | `sort_by`    | query | string | One of: `id`, `credit_quality`, `green_impact`, `power_output_kw`, `efficiency_pct`, `forest_density_pct`, `ndvi_score`, `timestamp` | `id`    |
 | `sort_order` | query | string | `asc` or `desc`                                                                                                                      | `asc`   |
 
-**Response `200`**
+**Response `200`** (`PaginatedProjectsResponse`)
 
 ```json
 {
@@ -270,27 +356,48 @@ Paginated, filterable list of projects with latest scores and telemetry.
   ],
   "total": 50,
   "filtered_total": 50,
+  "page": 1,
+  "pageSize": 10,
+  "hasMore": true,
   "cursor": 10
 }
 ```
 
+`cursor` is returned only when another page follows; it carries the next
+offset, so cursor clients (`?cursor=10&limit=10`) keep working unchanged.
+
 ### `GET /v1/projects/:id`
 
-Detailed metrics and funding data for a specific project.
+Detailed metrics and funding data for a specific project, nested as the
+frontend's `ProjectWithDetail` shape: `{project, detail, verifiedMetadata}`.
+
+- `project`: identity and impact scores (`id`, `credit_quality`, `green_impact`).
+- `detail`: telemetry and funding (`power_output_kw`, `efficiency_pct`,
+  `forest_density_pct`, `ndvi_score`, `timestamp`, `funding`).
+- `verifiedMetadata`: whether the backend holds metadata for the project.
+
+Returns `404 not_found` for ids that do not exist on the registry, including
+ids that were never issued and projects that were deleted or compacted
+(existence is read from the contract's `get_project(id)` getter).
 
 **Response `200`**
 
 ```json
 {
-  "id": 1,
-  "credit_quality": 74,
-  "green_impact": 69,
-  "power_output_kw": 742.15,
-  "efficiency_pct": 74.21,
-  "forest_density_pct": 68.44,
-  "ndvi_score": 0.684,
-  "timestamp": 1718150400000,
-  "funding": 482910.55
+  "project": {
+    "id": 1,
+    "credit_quality": 74,
+    "green_impact": 69
+  },
+  "detail": {
+    "power_output_kw": 742.15,
+    "efficiency_pct": 74.21,
+    "forest_density_pct": 68.44,
+    "ndvi_score": 0.684,
+    "timestamp": 1718150400000,
+    "funding": 482910.55
+  },
+  "verifiedMetadata": false
 }
 ```
 
@@ -333,6 +440,53 @@ Evaluates score direction (`improving`, `declining`, `stable`) over time.
   "trend": "improving",
   "net_delta": 4.5,
   "data_points": 12
+}
+```
+
+### `GET /v1/projects/:id/price-history` (#769)
+
+Powers the frontend's price/yield chart (`PricePoint[] = {date, price, yield?}`).
+Values are derived from real on-chain state:
+
+- `date`: ISO date string (`YYYY-MM-DD`). Daily buckets by default; weekly
+  buckets are aligned to the Monday of the containing ISO week (UTC).
+- `yield`: percentage yield, computed as `rate_bps / 100`. `rate_bps` comes
+  from the registry's `get_interest_rate(project_id)`.
+- `price`: one-period present value of a par-100 bond at that yield:
+  `price = 100 / (1 + yield / 100)`. Rounded to two decimal places.
+
+Timestamps for the series come from `get_score_history(project_id)` (a 50-entry
+ring buffer on the contract). Historical rate is not yet indexed from the
+`RateUpdated` / `ScoreChanged` events (paired backend work), so every point
+currently carries the CURRENT yield and price. When the event indexer lands
+the response shape stays the same and only the per-entry rate lookup changes.
+
+| Param      | In    | Type    | Rules                                                     |
+| :--------- | :---- | :------ | :-------------------------------------------------------- |
+| `id`       | path  | int     | Project id (`>= 1`)                                       |
+| `from`     | query | int     | Start timestamp (unix ms). Optional.                      |
+| `to`       | query | int     | End timestamp (unix ms). Must be `>= from`.               |
+| `interval` | query | string  | `day` (default) or `week`                                 |
+
+Responses:
+
+- `200`: `{project_id, interval, count, points}` with `points` in ascending
+  date order. Sets `Cache-Control: public, max-age=60`.
+- `400`: `bad_request` when `from > to` or `interval` is not `day` / `week`.
+- `404`: `not_found` when the project is unknown or archived on the registry.
+
+**Response `200`**
+
+```json
+{
+  "project_id": 27,
+  "interval": "day",
+  "count": 3,
+  "points": [
+    { "date": "2026-09-28", "price": 96.15, "yield": 4 },
+    { "date": "2026-09-29", "price": 96.15, "yield": 4 },
+    { "date": "2026-09-30", "price": 96.15, "yield": 4 }
+  ]
 }
 ```
 
@@ -1004,7 +1158,37 @@ Subscribes an email address to recurring summary digests.
 
 ### `GET /v1/email/unsubscribe`
 
-One-click unsubscribe endpoint (`?token=<unsubscribe_token>`).
+**Public**, no admin API key, IP allowlist, or request signature required
+(#763). Recipients can click the footer link from any mail client. Rate
+limited by the shared `publicLimiter`.
+
+Query: `token=<unsubscribe_token>` (URL-encoded).
+
+Responses:
+- `200 {"unsubscribed": true}` on success.
+- `400` when the token is missing.
+- `404` when the token is unknown or already used.
+
+### `POST /v1/email/unsubscribe`
+
+**Public**. RFC 8058 `List-Unsubscribe=One-Click` target. Mail clients
+POST here automatically when the recipient uses the built-in Unsubscribe
+button surfaced from the `List-Unsubscribe` header.
+
+Body: `{ "token": "<unsubscribe_token>" }` (or `?token=` in the query
+string; either is accepted).
+
+Alert and digest emails carry:
+
+- Absolute footer:
+  `Unsubscribe: ${PUBLIC_API_URL}/v1/email/unsubscribe?token=...`.
+- Headers: `List-Unsubscribe: <${PUBLIC_API_URL}/v1/email/unsubscribe?token=...>`
+  and `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+
+Tokens are HMAC-SHA256 derived from the subscriber's email plus
+`EMAIL_UNSUBSCRIBE_SECRET`. They are deterministic per subscriber and are
+not stored as raw UUIDs; rotating the secret invalidates every
+outstanding link.
 
 ### `GET /v1/email/subscribers`
 
@@ -1226,9 +1410,58 @@ Feature flag management and evaluation context analytics.
 
 ## 20. WebSocket Real-Time Updates
 
-The WebSocket endpoint provides real-time binary score updates with low latency and minimal bandwidth usage.
+Two WebSocket feeds are exposed, targeting different consumers:
 
-### Connection
+| Path         | Auth   | Frames         | Intended consumer                                   |
+| ------------ | ------ | -------------- | --------------------------------------------------- |
+| `/ws`        | Bearer | Binary (score) | Internal / server-to-server admin subscribers.       |
+| `/ws/events` | None   | JSON (vault)   | Browser tabs (the `VaultEventStream` in the app UI). |
+
+Both share the same HTTP server; the upgrade handler routes by URL pathname.
+
+### `/ws/events`: browser vault event stream (#767)
+
+Browsers cannot set headers on a `WebSocket`, so this feed accepts a bare
+`new WebSocket(url)` with **no** headers and **no** subscribe frame. The
+frontend's `VaultEventStream` is the canonical consumer.
+
+- **Endpoint**: `ws://localhost:3001/ws/events` (dev) or
+  `wss://your-domain.com/ws/events` (production).
+- **Auth**: none, this endpoint serves public chain data. Follow-up
+  work (#655) may layer an optional `Sec-WebSocket-Protocol` token.
+- **Optional filter**: `?contract=<contractId>`, only events whose
+  `contractId` field matches are delivered to that client. Omit to
+  receive every broadcast.
+- **Frame shape**: the fixture at
+  `src/__tests__/fixtures/vault-event.json` is the shared contract with
+  the frontend:
+
+  ```json
+  {
+    "type": "ScoreChanged",
+    "contractId": "CDLZ...CYSC",
+    "ledger": 1234567,
+    "topic": ["AAAA...", "AAAA..."],
+    "value": { "project_id": 27, "credit_quality": 82, "green_impact": 74 },
+    "id": "1234567-0"
+  }
+  ```
+
+- **Connection limits**: `WS_EVENTS_MAX_PER_IP` (default 8) concurrent
+  sockets per source IP. The 9th connection is closed with code
+  `1013 too many connections from this IP`.
+- **Heartbeat**: the server sends a WebSocket `ping` every 30s; sockets
+  that fail to `pong` within 60s are terminated. Browser `WebSocket`
+  answers pings automatically.
+- **Producers**: any backend module can push an event via
+  `broadcastVaultEvent(evt)` from `src/lib/vaultEvents.ts`. The full
+  end-to-end wiring from a Soroban indexer is tracked in the paired
+  issue referenced from #767.
+
+### `/ws`: authenticated binary score-update feed
+
+Unchanged from before #767. Provides real-time binary score updates with
+low latency and minimal bandwidth usage.
 
 - **Endpoint**: `ws://localhost:3001/ws` (dev) or `wss://your-domain.com/ws` (production)
 - **Protocol**: Binary frames for score updates, JSON for control messages

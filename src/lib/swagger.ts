@@ -20,6 +20,13 @@ export const openApiSpec = {
         name: "X-User-Id",
         description: "Required for admin and role-management endpoints.",
       },
+      WalletAddress: {
+        type: "apiKey" as const,
+        in: "header",
+        name: "x-wallet-address",
+        description:
+          "Stellar account (G...) authenticating the creator. When WALLET_AUTH_REQUIRE_SIGNATURE=true, also send x-wallet-signature and x-wallet-timestamp.",
+      },
     },
     schemas: {
       Error: {
@@ -35,6 +42,50 @@ export const openApiSpec = {
           name: { type: "string" },
           credit_quality: { type: "number" },
           green_impact: { type: "number" },
+          power_output_kw: { type: "number" },
+          efficiency_pct: { type: "number" },
+          forest_density_pct: { type: "number" },
+          ndvi_score: { type: "number" },
+          timestamp: { type: "integer" },
+        },
+      },
+      ProjectDetail: {
+        type: "object",
+        properties: {
+          power_output_kw: { type: "number" },
+          efficiency_pct: { type: "number" },
+          forest_density_pct: { type: "number" },
+          ndvi_score: { type: "number" },
+          timestamp: { type: "integer" },
+          funding: { type: "number" },
+        },
+      },
+      ProjectWithDetail: {
+        type: "object",
+        required: ["project", "detail", "verifiedMetadata"],
+        properties: {
+          project: { $ref: "#/components/schemas/Project" },
+          detail: { $ref: "#/components/schemas/ProjectDetail" },
+          verifiedMetadata: {
+            type: "boolean",
+            description: "Whether the backend holds metadata for the project.",
+          },
+        },
+      },
+      PaginatedProjectsResponse: {
+        type: "object",
+        required: ["projects", "total", "page", "pageSize", "hasMore"],
+        properties: {
+          projects: { type: "array", items: { $ref: "#/components/schemas/Project" } },
+          total: { type: "integer" },
+          filtered_total: { type: "integer" },
+          page: { type: "integer" },
+          pageSize: { type: "integer" },
+          hasMore: { type: "boolean" },
+          cursor: {
+            type: "integer",
+            description: "Legacy cursor alias: next offset when another page follows.",
+          },
         },
       },
       ScoreHistory: {
@@ -81,6 +132,25 @@ export const openApiSpec = {
           secret: { type: "string" },
         },
       },
+      CreatorApplication: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          wallet: { type: "string" },
+          status: {
+            type: "string",
+            enum: ["submitted", "in_review", "approved", "rejected"],
+          },
+          metadata: {
+            type: "object",
+            description:
+              "Validated against src/schemas/creator-application.schema.json (name, location, capacity_kw, documents).",
+          },
+          metadata_hash: { type: "string", nullable: true },
+          metadata_uri: { type: "string", nullable: true },
+          project_id: { type: "integer", nullable: true },
+        },
+      },
     },
   },
   paths: {
@@ -88,7 +158,9 @@ export const openApiSpec = {
       get: {
         summary: "Get solar data for a project",
         tags: ["IoT"],
-        parameters: [{ name: "projectId", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          { name: "projectId", in: "path", required: true, schema: { type: "integer" } },
+        ],
         responses: {
           200: { description: "Solar metrics" },
         },
@@ -98,7 +170,9 @@ export const openApiSpec = {
       get: {
         summary: "Get satellite data for a project",
         tags: ["IoT"],
-        parameters: [{ name: "projectId", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          { name: "projectId", in: "path", required: true, schema: { type: "integer" } },
+        ],
         responses: {
           200: { description: "Satellite metrics" },
         },
@@ -107,20 +181,94 @@ export const openApiSpec = {
     "/projects": {
       get: {
         summary: "List all projects",
+        description:
+          "Paginated list using the frontend's `page`/`pageSize` contract. `limit` is an alias for `pageSize`; `cursor` is a legacy offset alias that still works.",
         tags: ["Projects"],
+        parameters: [
+          {
+            name: "page",
+            in: "query",
+            schema: { type: "integer", minimum: 1, default: 1 },
+            description: "1-based page number",
+          },
+          {
+            name: "pageSize",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 10 },
+            description: "Items per page (max 100)",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 10 },
+            description: "Alias for pageSize",
+          },
+          {
+            name: "cursor",
+            in: "query",
+            schema: { type: "integer", minimum: 0 },
+            description: "Legacy offset cursor; applied as an offset when present",
+          },
+          { name: "min_score", in: "query", schema: { type: "number" } },
+          { name: "max_score", in: "query", schema: { type: "number" } },
+          { name: "min_date", in: "query", schema: { type: "number" } },
+          { name: "max_date", in: "query", schema: { type: "number" } },
+          {
+            name: "sort_by",
+            in: "query",
+            schema: {
+              type: "string",
+              enum: [
+                "id",
+                "credit_quality",
+                "green_impact",
+                "power_output_kw",
+                "efficiency_pct",
+                "forest_density_pct",
+                "ndvi_score",
+                "timestamp",
+              ],
+              default: "id",
+            },
+          },
+          {
+            name: "sort_order",
+            in: "query",
+            schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+          },
+        ],
         responses: {
-          200: { description: "Array of projects" },
+          200: {
+            description: "Paginated projects",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PaginatedProjectsResponse" },
+              },
+            },
+          },
         },
       },
     },
     "/projects/{id}": {
       get: {
         summary: "Get a single project",
+        description:
+          "Nested project/detail/verifiedMetadata response matching the frontend's `ProjectWithDetail` shape. Unknown or deleted ids return 404.",
         tags: ["Projects"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
-          200: { description: "Project object", content: { "application/json": { schema: { $ref: "#/components/schemas/Project" } } } },
-          404: { description: "Not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          200: {
+            description: "Project with detail",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProjectWithDetail" },
+              },
+            },
+          },
+          404: {
+            description: "Not found",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
         },
       },
     },
@@ -130,8 +278,18 @@ export const openApiSpec = {
         tags: ["History"],
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "integer" } },
-          { name: "from", in: "query", schema: { type: "integer" }, description: "Start timestamp (ms)" },
-          { name: "to", in: "query", schema: { type: "integer" }, description: "End timestamp (ms)" },
+          {
+            name: "from",
+            in: "query",
+            schema: { type: "integer" },
+            description: "Start timestamp (ms)",
+          },
+          {
+            name: "to",
+            in: "query",
+            schema: { type: "integer" },
+            description: "End timestamp (ms)",
+          },
           { name: "format", in: "query", schema: { type: "string", enum: ["json", "csv"] } },
         ],
         responses: {
@@ -145,7 +303,66 @@ export const openApiSpec = {
         tags: ["History"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
         responses: {
-          200: { description: "Trend result", content: { "application/json": { schema: { $ref: "#/components/schemas/Trend" } } } },
+          200: {
+            description: "Trend result",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Trend" } } },
+          },
+        },
+      },
+    },
+    "/projects/{id}/price-history": {
+      get: {
+        summary: "Price and yield chart series for a project (#769)",
+        description:
+          "Returns `PricePoint[]` = `{date, price, yield?}` for the project's chart. Values are derived from the on-chain `get_score_history` timestamps and the current `get_interest_rate`. `yield` is `rate_bps / 100`; `price` is `100 / (1 + yield/100)` (one-period present value). See API.md for the full formula.",
+        tags: ["History"],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          {
+            name: "from",
+            in: "query",
+            schema: { type: "integer" },
+            description: "Start timestamp (unix ms)",
+          },
+          {
+            name: "to",
+            in: "query",
+            schema: { type: "integer" },
+            description: "End timestamp (unix ms)",
+          },
+          {
+            name: "interval",
+            in: "query",
+            schema: { type: "string", enum: ["day", "week"], default: "day" },
+            description: "Bucket size for the series",
+          },
+        ],
+        responses: {
+          200: {
+            description: "PricePoint series in ascending date order",
+            content: {
+              "application/json": {
+                example: {
+                  project_id: 27,
+                  interval: "day",
+                  count: 3,
+                  points: [
+                    { date: "2026-09-28", price: 96.15, yield: 4 },
+                    { date: "2026-09-29", price: 96.15, yield: 4 },
+                    { date: "2026-09-30", price: 96.15, yield: 4 },
+                  ],
+                },
+              },
+            },
+          },
+          400: {
+            description: "Invalid range or interval",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
+          404: {
+            description: "Unknown or archived project",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+          },
         },
       },
     },
@@ -173,7 +390,10 @@ export const openApiSpec = {
         tags: ["Admin", "Batch"],
         security: [{ UserId: [] }],
         responses: {
-          202: { description: "Job accepted", content: { "application/json": { schema: { $ref: "#/components/schemas/BatchJob" } } } },
+          202: {
+            description: "Job accepted",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/BatchJob" } } },
+          },
           401: { description: "Unauthorized" },
         },
       },
@@ -185,7 +405,10 @@ export const openApiSpec = {
         security: [{ UserId: [] }],
         parameters: [{ name: "batchId", in: "path", required: true, schema: { type: "string" } }],
         responses: {
-          200: { description: "Job status", content: { "application/json": { schema: { $ref: "#/components/schemas/BatchJob" } } } },
+          200: {
+            description: "Job status",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/BatchJob" } } },
+          },
           404: { description: "Job not found" },
         },
       },
@@ -255,7 +478,10 @@ export const openApiSpec = {
           },
         },
         responses: {
-          201: { description: "Webhook registered", content: { "application/json": { schema: { $ref: "#/components/schemas/Webhook" } } } },
+          201: {
+            description: "Webhook registered",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/Webhook" } } },
+          },
         },
       },
     },
@@ -277,6 +503,114 @@ export const openApiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: {
           200: { description: "Webhook removed" },
+          404: { description: "Not found" },
+        },
+      },
+    },
+    "/creators/applications": {
+      post: {
+        summary: "Submit a creator application",
+        tags: ["Creators"],
+        security: [{ WalletAddress: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "location", "capacity_kw", "documents"],
+                properties: {
+                  name: { type: "string" },
+                  location: { type: "string" },
+                  capacity_kw: { type: "number" },
+                  documents: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "ipfs://, https:// or ar:// URIs only.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Application submitted",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/CreatorApplication" } },
+            },
+          },
+          400: { description: "Invalid metadata or document URI" },
+          401: { description: "Missing or invalid wallet authentication" },
+        },
+      },
+    },
+    "/creators/applications/{id}/create-project-tx": {
+      get: {
+        summary: "Build an unsigned create_project transaction (#771)",
+        tags: ["Creators"],
+        security: [{ WalletAddress: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          { name: "sequence", in: "query", schema: { type: "string" } },
+          { name: "maturity_date", in: "query", schema: { type: "integer" } },
+        ],
+        responses: {
+          200: { description: "Unsigned create_project XDR (never signed server-side)" },
+          403: { description: "Application belongs to another wallet" },
+          409: { description: "Application is not approved yet" },
+        },
+      },
+    },
+    "/admin/creators/applications/{id}": {
+      get: {
+        summary: "Get a creator application",
+        tags: ["Admin", "Creators"],
+        security: [{ UserId: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: {
+            description: "Application",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/CreatorApplication" } },
+            },
+          },
+          404: { description: "Not found" },
+        },
+      },
+      patch: {
+        summary: "Advance the creator application review workflow",
+        tags: ["Admin", "Creators"],
+        security: [{ UserId: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["status"],
+                properties: {
+                  status: { type: "string", enum: ["in_review", "approved", "rejected"] },
+                  actor: { type: "string" },
+                  note: { type: "string" },
+                  whitelister: {
+                    type: "string",
+                    description:
+                      "Whitelister G... address; when set the response includes the unsigned set_whitelist XDR.",
+                  },
+                  whitelister_sequence: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description:
+              "Updated application; includes set_whitelist_tx on approval when a whitelister is supplied",
+          },
+          400: { description: "Invalid transition or input" },
           404: { description: "Not found" },
         },
       },
