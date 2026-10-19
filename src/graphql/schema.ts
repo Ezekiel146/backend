@@ -84,11 +84,11 @@ export function createGraphQLContext(req: any): GraphQLContext {
   }
 
   const solarLoader = new DataLoader<number, any>(async (keys) => {
-    return keys.map((id) => getSolarData(id));
+    return Promise.all(keys.map((id) => Promise.resolve(getSolarData(id))));
   });
 
   const satelliteLoader = new DataLoader<number, any>(async (keys) => {
-    return keys.map((id) => getSatelliteData(id));
+    return Promise.all(keys.map((id) => Promise.resolve(getSatelliteData(id))));
   });
 
   return {
@@ -178,8 +178,12 @@ export const graphqlRoot = {
       throw new Error("Unauthorized: Valid API Key is required");
     }
     const total = await getTotalProjects();
-    const ids = Array.from({ length: total }, (_, i) => i + 1);
-    const paginatedIds = ids.slice(offset, offset + (limit ?? 10));
+    // Cap limit to prevent excessive memory usage (#696)
+    const cappedLimit = Math.min(limit ?? 10, 100);
+    const paginatedIds: number[] = [];
+    for (let i = 0; i < cappedLimit && offset + i < total; i++) {
+      paginatedIds.push(offset + i + 1);
+    }
     return paginatedIds.map((id) => new ProjectResolver(String(id)));
   },
 
@@ -188,7 +192,6 @@ export const graphqlRoot = {
       throw new Error("Unauthorized: Valid API Key is required");
     }
     const total = await getTotalProjects();
-    const ids = Array.from({ length: total }, (_, i) => i + 1);
 
     let sumCq = 0;
     let sumGi = 0;
@@ -198,22 +201,36 @@ export const graphqlRoot = {
     let bestScore = -1;
     let worstScore = 999;
 
-    for (const id of ids) {
-      const solar = getSolarData(id);
-      const satellite = getSatelliteData(id);
-      const scores = computeScores({ solar, satellite });
-      sumCq += scores.credit_quality;
-      sumGi += scores.green_impact;
-      sumPower += solar.power_output_kw;
+    // Process projects in batches to avoid loading all into memory (#696)
+    const BATCH_SIZE = 1000;
+    for (let offset = 0; offset < total; offset += BATCH_SIZE) {
+      const batchEnd = Math.min(offset + BATCH_SIZE, total);
+      const ids = Array.from(
+        { length: batchEnd - offset },
+        (_, index) => offset + index + 1,
+      );
+      const batch = await Promise.all(
+        ids.map(async (id) => ({
+          id,
+          solar: await context.loaders.solarLoader.load(id),
+          satellite: await context.loaders.satelliteLoader.load(id),
+        })),
+      );
+      for (const { id, solar, satellite } of batch) {
+        const scores = computeScores({ solar, satellite });
+        sumCq += scores.credit_quality;
+        sumGi += scores.green_impact;
+        sumPower += solar.power_output_kw;
 
-      const score = scores.credit_quality + scores.green_impact;
-      if (score > bestScore) {
-        bestScore = score;
-        bestProjId = id;
-      }
-      if (score < worstScore) {
-        worstScore = score;
-        worstProjId = id;
+        const score = scores.credit_quality + scores.green_impact;
+        if (score > bestScore) {
+          bestScore = score;
+          bestProjId = id;
+        }
+        if (score < worstScore) {
+          worstScore = score;
+          worstProjId = id;
+        }
       }
     }
 

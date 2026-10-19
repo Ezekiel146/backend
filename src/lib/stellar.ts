@@ -157,7 +157,12 @@ export async function signAndSubmit(
           reject(error);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        logger.error("submission queue unexpected error", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        reject(err);
+      });
   });
 }
 
@@ -180,7 +185,7 @@ async function _attemptSubmit(
   preparedXdr: string,
   keypair: Keypair,
 ): Promise<string> {
-  let tx = TransactionBuilder.fromXDR(preparedXdr, networkPassphrase) as any;
+  const tx = TransactionBuilder.fromXDR(preparedXdr, networkPassphrase);
 
   // 1. Fetch latest sequence number from ledger state
   const accountKey = xdr.LedgerKey.account(
@@ -202,20 +207,8 @@ async function _attemptSubmit(
       localSequenceTracker = onChainSequence;
     }
 
-    const targetSequence = (localSequenceTracker + 1n).toString();
-    const account = new Account(keypair.publicKey(), targetSequence);
-
-    const builder = new TransactionBuilder(account, {
-      fee: tx.fee,
-      networkPassphrase,
-      timebounds: tx.timeBounds || (tx.tx ? tx.tx.timeBounds : undefined),
-    });
-
-    for (const op of tx.operations) {
-      builder.addOperation(op);
-    }
-
-    tx = builder.build();
+    // Just track the sequence, use the transaction as-is since it was already prepared with proper operations
+    localSequenceTracker = onChainSequence;
   }
 
   tx.sign(keypair);
